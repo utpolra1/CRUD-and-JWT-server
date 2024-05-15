@@ -87,7 +87,15 @@ async function run() {
       res.send(result);
     });
 
-    
+    //
+    app.get("/wishlist/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      // console.log(id);
+      const cursor = await wishlistCollection.findOne(query);
+      res.send(cursor);
+    });
+
     app.post("/blog", async (req, res) => {
       const newProduct = req.body;
       // console.log(newProduct);
@@ -95,7 +103,16 @@ async function run() {
       res.send(result);
     });
 
-   
+    // delete mathod
+    app.delete("/wishlist/:id", async (req, res) => {
+      const id = req.params.id;
+      // console.log("marking", id);
+      const query = { _id: new ObjectId(id) };
+      const result = await wishlistCollection.deleteOne(query);
+      res.send(result);
+    });
+
+    
 
     //Comment Update
     app.put("/comments/:id", async (req, res) => {
