@@ -55,7 +55,20 @@ async function run() {
       res.send(result);
     });
 
-    
+    //add New Commet
+    app.get("/comments", async (req, res) => {
+      const cursor = commentCollection.find();
+      const result = await cursor.toArray();
+      res.send(result);
+    });
+
+    app.post("/comments", async (req, res) => {
+      const newProduct = req.body;
+      // console.log(newProduct);
+      const result = await commentCollection.insertOne(newProduct);
+      res.send(result);
+    });
+
    
 
     
