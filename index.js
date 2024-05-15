@@ -35,7 +35,13 @@ async function run() {
       res.send(result);
     });
 
-   
+    //update get data
+    app.get("/blog/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const cursor = await blogCollection.findOne(query);
+      res.send(cursor);
+    });
 
     
 
