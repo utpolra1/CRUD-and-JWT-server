@@ -78,7 +78,15 @@ async function run() {
       res.send(cursor);
     });
 
-    
+    app.post("/wishlist", async (req, res) => {
+      const { title, shortdescription, email ,image} = req.body;
+      const newBlog = { title, shortdescription, email, image };
+      // console.log(newBlog);
+      const result = await wishlistCollection.insertOne(newBlog);
+      // console.log(result)
+      res.send(result);
+    });
+
     
     app.post("/blog", async (req, res) => {
       const newProduct = req.body;
