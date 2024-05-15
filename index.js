@@ -43,7 +43,20 @@ async function run() {
       res.send(cursor);
     });
 
+    app.get("/wishlist", async (req, res) => {
+      const cursor = wishlistCollection.find();
+      const result = await cursor.toArray();
+      res.send(result);
+    });
+
+    app.get("/featuredblogs", async (req, res) => {
+      const cursor = featuredblogsCollection.find();
+      const result = await cursor.toArray();
+      res.send(result);
+    });
+
     
+   
 
     
     
