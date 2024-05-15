@@ -112,7 +112,23 @@ async function run() {
       res.send(result);
     });
 
-    
+    //update mthod
+    app.put("/blog/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const options = { upsert: true };
+      const updateDoc = req.body;
+      const update = {
+        $set: {
+          title: updateDoc.title,
+          image: updateDoc.image,
+          shortdescription: updateDoc.shortdescription,
+          longDescription: updateDoc.longDescription,
+        },
+      };
+      const result = await blogCollection.updateOne(query, update, options);
+      res.send(result);
+    });
 
     //Comment Update
     app.put("/comments/:id", async (req, res) => {
