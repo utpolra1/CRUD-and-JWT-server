@@ -4,7 +4,13 @@ require("dotenv").config();
 const app = express();
 const port = process.env.PORT || 5000;
 
-app.use(cors());
+// Middleware
+app.use(
+  cors({
+    origin: ["http://localhost:5173"],
+    credentials: true,
+  })
+);
 app.use(express.json());
 
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
@@ -21,13 +27,11 @@ const client = new MongoClient(uri, {
 
 async function run() {
   try {
-    // Connect the client to the server	(optional starting in v4.7)
-    // await client.connect();
+    // Connect the client to the server
+    await client.connect();
 
-    const blogCollection = client.db("newBlog").collection("blog");
-    const wishlistCollection = client.db("newBlog").collection("wishlist");
-    const commentCollection = client.db("newBlog").collection("comments");
-    const featuredblogsCollection=client.db("newBlog").collection("featuredblogs");
+    const blogCollection = client.db("newspaper").collection("blog");
+    const usersCollection = client.db("newspaper").collection('user');
 
     app.get("/blog", async (req, res) => {
       const cursor = blogCollection.find();
@@ -35,133 +39,78 @@ async function run() {
       res.send(result);
     });
 
-    //update get data
-    app.get("/blog/:id", async (req, res) => {
-      const id = req.params.id;
-      const query = { _id: new ObjectId(id) };
-      const cursor = await blogCollection.findOne(query);
-      res.send(cursor);
-    });
-
-    app.get("/wishlist", async (req, res) => {
-      const cursor = wishlistCollection.find();
-      const result = await cursor.toArray();
-      res.send(result);
-    });
-
-    app.get("/featuredblogs", async (req, res) => {
-      const cursor = featuredblogsCollection.find();
-      const result = await cursor.toArray();
-      res.send(result);
-    });
-
-    //add New Commet
-    app.get("/comments", async (req, res) => {
-      const cursor = commentCollection.find();
-      const result = await cursor.toArray();
-      res.send(result);
-    });
-
-    app.post("/comments", async (req, res) => {
-      const newProduct = req.body;
-      // console.log(newProduct);
-      const result = await commentCollection.insertOne(newProduct);
-      res.send(result);
-    });
-
-    //Update Comment data
-    app.get("/comments/:id", async (req, res) => {
-      const id = req.params.id;
-      console.log(id);
-      const query = { _id: new ObjectId(id) };
-      const cursor = await commentCollection.findOne(query);
-      res.send(cursor);
-    });
-
-    app.post("/wishlist", async (req, res) => {
-      const { title, shortdescription, email ,image} = req.body;
-      const newBlog = { title, shortdescription, email, image };
-      // console.log(newBlog);
-      const result = await wishlistCollection.insertOne(newBlog);
-      // console.log(result)
-      res.send(result);
-    });
-
-    //
-    app.get("/wishlist/:id", async (req, res) => {
-      const id = req.params.id;
-      const query = { _id: new ObjectId(id) };
-      // console.log(id);
-      const cursor = await wishlistCollection.findOne(query);
-      res.send(cursor);
-    });
-
     app.post("/blog", async (req, res) => {
       const newProduct = req.body;
-      // console.log(newProduct);
       const result = await blogCollection.insertOne(newProduct);
       res.send(result);
     });
 
-    // delete mathod
-    app.delete("/wishlist/:id", async (req, res) => {
-      const id = req.params.id;
-      // console.log("marking", id);
-      const query = { _id: new ObjectId(id) };
-      const result = await wishlistCollection.deleteOne(query);
+    // Save a user data in db
+    app.put('/user', async (req, res) => {
+      const user = req.body;
+      const query = { email: user?.email };
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: { ...user },
+      };
+
+      const isExist = await usersCollection.findOne(query);
+      if (isExist) {
+        if (user.status === 'Requested') {
+          const result = await usersCollection.updateOne(query, {
+            $set: { status: user?.status },
+          });
+          return res.send(result);
+        } else {
+          return res.send(isExist);
+        }
+      }
+
+      const result = await usersCollection.updateOne(query, updateDoc, options);
       res.send(result);
     });
 
-    //update mthod
-    app.put("/blog/:id", async (req, res) => {
-      const id = req.params.id;
-      const query = { _id: new ObjectId(id) };
-      const options = { upsert: true };
-      const updateDoc = req.body;
-      const update = {
-        $set: {
-          title: updateDoc.title,
-          image: updateDoc.image,
-          shortdescription: updateDoc.shortdescription,
-          longDescription: updateDoc.longDescription,
-        },
-      };
-      const result = await blogCollection.updateOne(query, update, options);
+    app.get("/user/:email", async (req, res) => {
+      const email = req.params.email;
+      const result = await usersCollection.findOne({ email });
       res.send(result);
     });
 
-    //Comment Update
-    app.put("/comments/:id", async (req, res) => {
-      const id = req.params.id;
-      const query = { _id: new ObjectId(id) };
-      const options = { upsert: true };
-      const updateDoc = req.body;
-      const update = {
-        $set: {
-          textcomment: updateDoc.textComment,
-        },
-      };
-      const result = await commentCollection.updateOne(query, update, options);
+    app.get("/user", async (req, res) => {
+      const cursor = usersCollection.find();
+      const result = await cursor.toArray();
       res.send(result);
     });
+
+    //make admin api
+    app.patch('/user/admin/:id',async (req, res)=>{
+      const id =req.params.id;
+      const filter= {_id: new ObjectId(id)};
+      const updateDoc ={
+        $set:{
+          role:'admin'
+        }
+      }
+      const result =await usersCollection.updateOne(filter,updateDoc)
+      res.send(result)
+    })
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
-    console.log(
-      "Pinged your deployment. You successfully connected to MongoDB!"
-    );
+    console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
+    // You can close the client connection here if you do not want to keep it open
+    // await client.close();
   }
 }
+
 run().catch(console.dir);
 
-app.use(cors());
-app.use(express.json());
-
+// Root route
 app.get("/", (req, res) => {
-  res.send("Blog Runing");
+  res.send("Blog Running");
 });
 
 app.listen(port, () => {
-  console.log(`blog server runing port: ${port}`);
+  console.log(`Blog server running on port: ${port}`);
 });
